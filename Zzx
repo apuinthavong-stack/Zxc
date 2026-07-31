@@ -1,0 +1,166 @@
+-- [[ Orion UI Library Script ]] --
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "Orion Menu | 5 Functions", 
+    HidePremium = false, 
+    SaveConfig = false, 
+    ConfigFolder = "OrionTest"
+})
+
+-- Variables
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local Settings = {
+    Aimbot = false,
+    FOVSize = 100,
+    Speed = 16,
+    ESP_Highlight = false,
+    ESP_Tracer = false
+}
+
+-- สร้าง Tab หลัก
+local MainTab = Window:MakeTab({
+    Name = "Main Menu",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+-- =========================================
+-- ฟังก์ชันที่ 1: ล็อคเป้า + วงกลม FOV สีเขียว
+-- =========================================
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(0, 255, 0) -- สีเขียว
+FOVCircle.Thickness = 2
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+MainTab:AddToggle({
+    Name = "1. ล็อคเป้าศัตรู (Aimbot)",
+    Default = false,
+    Callback = function(Value)
+        Settings.Aimbot = Value
+        FOVCircle.Visible = Value
+    end    
+})
+
+MainTab:AddSlider({
+    Name = "ขนาดวงกลม FOV",
+    Min = 30,
+    Max = 300,
+    Default = 100,
+    Color = Color3.fromRGB(0, 255, 0),
+    Increment = 5,
+    ValueName = "px",
+    Callback = function(Value)
+        Settings.FOVSize = Value
+    end    
+})
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Radius = Settings.FOVSize
+end)
+
+-- =========================================
+-- ฟังก์ชันที่ 2: ปรับความเร็ววิ่ง (1-100%)
+-- =========================================
+MainTab:AddSlider({
+    Name = "2. ปรับความเร็วการวิ่ง (Speed %)",
+    Min = 1,
+    Max = 100,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(Value)
+        Settings.Speed = Value
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end
+    end    
+})
+
+-- =========================================
+-- ฟังก์ชันที่ 3: ระบบป้องกันการตรวจจับเบื้องต้น
+-- =========================================
+MainTab:AddToggle({
+    Name = "3. ระบบกันแบน / ป้องกันการตรวจจับ",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Anti-Bypass",
+                Content = "เปิดโหมดลดความเสี่ยงเรียบร้อยแล้ว",
+                Image = "rbxassetid://4483362458",
+                Time = 3
+            })
+        end
+    end    
+})
+
+-- =========================================
+-- ฟังก์ชันที่ 4: แสดงจุดศัตรู (ESP Highlight)
+-- =========================================
+MainTab:AddToggle({
+    Name = "4. แสดงไฮไลท์ศัตรู (ESP Highlight)",
+    Default = false,
+    Callback = function(Value)
+        Settings.ESP_Highlight = Value
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                if Value then
+                    local highlight = player.Character:FindFirstChild("ESPHighlight") or Instance.new("Highlight")
+                    highlight.Name = "ESPHighlight"
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.Parent = player.Character
+                else
+                    if player.Character:FindFirstChild("ESPHighlight") then
+                        player.Character.ESPHighlight:Destroy()
+                    end
+                end
+            end
+        end
+    end    
+})
+
+-- =========================================
+-- ฟังก์ชันที่ 5: เครื่องหมายบอกตำแหน่งศัตรู
+-- =========================================
+MainTab:AddToggle({
+    Name = "5. เครื่องหมายและชื่อศัตรู",
+    Default = false,
+    Callback = function(Value)
+        Settings.ESP_Tracer = Value
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                local head = player.Character.Head
+                if Value then
+                    local gui = head:FindFirstChild("EnemyTracker") or Instance.new("BillboardGui")
+                    gui.Name = "EnemyTracker"
+                    gui.AlwaysOnTop = true
+                    gui.Size = UDim2.new(0, 100, 0, 30)
+                    gui.StudsOffset = Vector3.new(0, 2, 0)
+                    
+                    local label = Instance.new("TextLabel", gui)
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 1
+                    label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                    label.Text = "[ " .. player.Name .. " ]"
+                    
+                    gui.Parent = head
+                else
+                    if head:FindFirstChild("EnemyTracker") then
+                        head.EnemyTracker:Destroy()
+                    end
+                end
+            end
+        end
+    end    
+})
+
+-- เริ่มการทำงานของ Orion UI
+OrionLib:Init()
